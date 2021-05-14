@@ -1,0 +1,20 @@
+NodeGUIMain
+Node GUI for manipulation of ZoneList files
+0
+0
+0.1.21
+
+gb.image
+gb.gui
+gb.form
+gb.compress
+gb.compress.bzlib2
+gb.compress.zlib
+gb.db
+gb.db.sqlite3
+gb.form.dialog
+gb.util
+gb.settings
+gb.form.stock
+gb.logging
+

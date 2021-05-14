@@ -1,0 +1,9 @@
+NodeGUI is a Linux GUI app that 
+grabs the daily nodelist (Z1DAILY)
+and tosses it into a SQLite database
+This first publicly available 
+version is very simple and lacks a
+lot of functionality, but it is the
+beginnings of what is hoped to become
+a comprehensive NodeList Manager.
+Version 0.1.13
