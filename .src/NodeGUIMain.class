@@ -1,0 +1,397 @@
+' Gambas class file
+
+Public myLang As String
+Public myUserName As String
+Public myLastNodelist As String
+Public myLastYearDay As String
+Public SystemLang As String
+Public $con As Connection
+
+Public Sub Form_Open()
+  
+  ' Update window position from settings file
+  ' If the settings file is not found then
+  ' use default position.
+  
+  Me.Top = Settings["Window/Top", Me.Top]
+  Me.Left = Settings["Window/Left", Me.Left]
+  Me.Height = Settings["Window/Height", Me.Height]
+  Me.Width = Settings["Window/Width", Me.Width]
+  
+  NodeGUIMain.Text = ("Node GUI [Version: " & Application.Version & "]" & "(" & System.Host & ")")
+  
+  'Application Settings
+  SystemLang = Settings["Application/SysLang"]
+  If SystemLang = "" Then
+    SystemLang = "en_US"
+    System.Language = "en_US"
+  Endif
+  
+  myLang = Settings["Application/Lang"]
+  myUserName = Settings["Application/UserName"]
+  myLastNodeList = Settings["Application/NodeList"]
+  myLastYearDay = Settings["Application/YearDay"]
+  
+  OpenDatabase
+  LoadTableViewNodes
+  'ReadNodelist
+  
+End
+
+Public Sub Form_Close()
+  ' Save window settings when application closes
+  
+  Settings["Window/Top"] = Me.Top
+  Settings["Window/Left"] = Me.Left
+  Settings["Window/Height"] = Me.Height
+  Settings["Window/Width"] = Me.Width
+  Settings["Application/SysLang"] = System.Language
+  Settings["Application/Lang"] = "en" ' myLang
+  Settings["Application/UserName"] = "BoonDock" 'myUserName
+  Settings["Application/NodeList"] = myLastNodeList 
+  Settings["Application/YearDay"] = myLastYearDay
+  
+End
+
+Public $conopen As String
+
+Public Sub OpenDatabase()
+  
+  'Debug ("Enter Open Database subroutine")
+  'Open the SQLite Database. If it doesn't exist, then it will be created automatically
+  
+  If Not Exist(Application.path & "/NodeList.sqlite3") Then
+    $con = New Connection         ' We erase all previous configuration with creation of a new instance
+    $con.Type = "sqlite3"         ' Defines the type of connection
+    $con.Host = Application.path  ' Host will be the path where the sqlite db file is
+    $con.Name = ""                ' If it Is Empty, a temporary one Is Used To Use it As A base db
+    $con.Open                     ' As name is empty it will always open the db in memory
+    $con.Databases.Add("NodeList.sqlite3") ' This will Create a New Db In the path defined by "host"
+    $con.Close
+  Endif 
+  $con = New Connection
+  Try $con.Close()              ' Close the connection the Try allows it To fail without Error
+  $con.Type = "sqlite3"         ' Defines the type of connection
+  $con.Host = Application.path  ' Host will be the path where the sqlite db file is
+  $con.Name = "NodeList.sqlite3" ' Database name Is The name Of the database file
+  Try $con.Open()               ' We activate And Open the connection, the Try Is To allow an Error
+  
+  If Not IsNull($con) Then
+    If Not $con.Opened Then
+      $conopen = False
+      Print ("Could not connect, error I/O or something!")
+      Quit
+    Endif
+    $conopen = True
+  Endif
+  
+  'Create the table if it doesn't exist
+  ' CREATE TABLE nodes(domain TEXT COLLATE NOCASE, nodeno TEXT, bbsname TEXT, location TEXT, sysop TEXT)
+  '$con.Exec("CREATE TABLE IF NOT EXISTS nodes(domain TEXT COLLATE NOCASE, nodeno TEXT, bbsname TEXT, location TEXT, sysop TEXT)")
+  $con.Exec("Create TABLE IF NOT EXISTS 'nodes' ('domain' TEXT,'nodeno' TEXT,'bbsname' TEXT,'location' TEXT,'sysop' TEXT,'NodeDay' TEXT,'Zone' INTEGER, 'Net' INTEGER,'Node' INTEGER,'Role' TEXT,PRIMARY KEY('nodeno'))")
+  
+  $con.Exec("CREATE TABLE IF NOT EXISTS 'dumpnodes' (id INTEGER NOT NULL,f0 TEXT, f1 TEXT,f2 TEXT,f3 TEXT,f4 TEXT, f5 TEXT, f6 TEXT, f7 TEXT, f8 TEXT, f9 TEXT, f10 TEXT,f11 TEXT,f12 TEXT,f13 TEXT,f14 TEXT,f15 TEXT,f16 TEXT, f17 TEXT, f18 TEXT, f19 TEXT, f20 TEXT,f21 TEXT,f22 TEXT,f23 TEXT,f24 TEXT,f25 TEXT,f26 TEXT,f27 TEXT,f28 TEXT,f29 TEXT,f30 TEXT,f31 TEXT,f32 TEXT,f33 TEXT,f34 TEXT,f35 TEXT,f36 TEXT,f37 TEXT,f38 TEXT,f39 TEXT,f40 TEXT, PRIMARY KEY(id AUTOINCREMENT))")
+  
+  'Debug ("Exit  Open Database subroutine")
+  Debug "System Language: " & SystemLang
+  
+End
+
+Sub ReadNodelist()
+  
+  Dim YearDay As String
+  Dim Z1Daily As String
+  Dim NodeListFile As String
+  Dim myYear As Integer = Year(Now)
+  
+  YearDay = DateDiff(Date(myYear, 01, 01), Date(Now), gb.Day) + 1
+  myLastYearDay = YearDay
+  Debug "YearDay: " & YearDay
+  
+  'Dialog.Title = ("Choose a Zone List file")
+  'Dialog.Filter = ["*.Z??", "Zone Daily Files", "*", "All files"]
+  'Dialog.Path = Application.Dir
+  'If Dialog.OpenFile() Then
+  '  Return ' User pressed Cancel -
+  'Endif
+  'Debug Dialog.Path
+  Z1Daily = "Z1DAILY." & "Z" & Right(YearDay, 2)
+  NodeListFile = Application.dir & "/" & "Z1DAILY." & YearDay
+  myLastNodeList = NodeListFile
+  
+  Print "Z1Daily : " & Z1Daily
+  
+  Dim TheProcess As Process
+  Spinner1.Start
+  TheProcess = Shell "wget -q -N https://fido-z1.darkrealms.ca/files/dailylist/" & Z1Daily For Input Output As "Executing"
+  Do
+    Try Wait 1
+  Loop Until TheProcess.State = 0
+  Spinner1.Stop
+  
+  TheProcess = Null
+  
+  Dim UnzipProcess As Process
+  Spinner1.Start
+  
+  UnzipProcess = Shell "unzip -o " & Application.Dir & "/" & Z1Daily & " -d " & Application.Dir For Input Output As "Unzipping"
+  
+  Do 
+    Try Wait 1
+  Loop Until UnzipProcess.State = 0
+  Spinner1.Stop
+  
+  'Return ' Temp to stop the processing
+  Dim rs As Result
+  Dim x As Integer
+  Dim y As Integer
+  Dim z As Integer
+  
+  Dim Elt As String[]
+  
+  Dim mySQL As String
+  
+  Dim sData As String[] 
+  sData = Split(File.Load(NodeListFile), gb.Lf, Chr(34), False, False)
+  ' sData = New String[]
+  ' Dim hFile As File
+  ' Dim sLine As String
+  ' 
+  ' hFile = Open NodeListFile For Read
+  ' 
+  ' While Not Eof(hFile)
+  '   Line Input #hFile, sLine
+  '   If Left(sLine, 1) = ";" Then
+  '     Debug "Skip Line : " & sLine
+  '   Else
+  '     sData.Add(sLine)
+  '     
+  '   Endif
+  ' Wend
+  ' Close #hFile
+  
+  $con.Begin
+  mySql = "DELETE FROM 'dumpnodes' ;"
+  rs = $con.Exec(mySQL)
+  
+  $con.Commit
+  
+  $con.Begin
+  For x = 0 To sData.Count - 1
+    If Left(sData[x]) = ";" Then 
+      Debug "Line Skipped: " & x
+      
+    Else
+      Elt = Split(sData[x], ",", "", False, True)
+      If Elt.Count < 35 Then
+        For z = Elt.Count To 35  
+          Elt.Add("", z)
+        Next
+      Endif
+      If Left(Elt[0]) = ";" Then
+        Debug "Skipped extra line: " & x
+      Else
+        
+        ' Variable number of array values in Elt. Make more fields and construct the SQL using (Elt.Count -1)
+        Dim mySqlFields As String
+        Dim mySqlValues As String
+        
+        mySql = "INSERT INTO 'dumpnodes' ("
+        mySqlFields = "'id'"
+        mySqlValues = " ( Null "
+        
+      Endif
+      For y = 0 To 35 ' Elt.count - 1
+        Elt[y] = Replace$(Elt[y], "'", "~") ' Replace single quote with ~ SPECIALLY for D'Bridge !!!!! :-(())
+        'Elt[y] = Replace$(Elt[y], "\r", ",[r]")
+        'Elt[y] = Replace$(Elt[y], "\n", ",[n]")
+        mySqlFields &= ", 'f" & y & "'"
+        mySqlValues &= ", '" & Elt[y] & "'"
+        
+      Next
+      mySqlFields &= ") VALUES "
+      mySqlValues &= ");"
+      mySql &= mySqlFields & mySqlValues
+      rs = $con.Exec(mySQL)
+      Debug x
+    Endif
+  Next
+  $con.Commit
+  
+  Message("Node List Imported\n" & NodeListFile)
+  
+End
+
+Public Sub UpdateNodes()
+  
+  Dim mySQL As String
+  Dim rs As Result
+  Dim rs1 As Result
+  
+  Dim zone As Integer = 0
+  Dim region As Integer = 0
+  Dim net As Integer = 0
+  Dim node As Integer = 0
+  
+  Dim domain As String
+  Dim nodeno As String
+  Dim bbsname As String
+  Dim location As String
+  Dim sysop As String
+  Dim role As String
+  Dim YearDay As String
+  Dim myYear As Integer = Year(Now)
+  
+  Spinner1.Start
+  
+  mySql = "SELECT * from dumpnodes;"
+  rs = $con.Exec(mySQL)
+  While (rs.Available)
+    If rs!f0 == "Zone" Then
+      zone = rs!f1 
+      net = 0
+      region = 0
+      node = 0
+      
+      role = "Zone"
+    Else
+      If rs!f0 == "Region" Then
+        region = rs!f1
+        net = region
+        node = 0
+        role = "Region"
+      Else
+        If rs!f0 == "Host" Then
+          net = rs!f1
+          role = "Host"
+          node = 0
+        Else
+          role = "Node"
+          node = rs!f1
+        Endif
+      Endif
+    Endif 
+    
+    YearDay = DateDiff(Date(myYear, 01, 01), Date(Now), gb.Day) + 1
+    domain = "FidoNet"
+    bbsname = Replace$(rs!f2, "_", " ")
+    location = Replace$(rs!f3, "_", " ")
+    sysop = Replace$(rs!f4, "_", " ")
+    nodeno = zone & ":" & net & "/" & node
+    Print "Node Number: " & nodeno
+    
+    ' Use REPLACE syntax so that it will insert, but delete and insert if the record exists. 
+    ' Constraint is based on the primary key which at this point is "nodeno"
+    mySQL = "REPLACE INTO nodes ('domain',nodeno,bbsname,location,sysop,nodeday,Zone,Net,Node,Role ) "
+    mySQL &= " VALUES ('" & domain & "','" & nodeno & "','" & bbsname & "','" & location & "','" & sysop & "','" & YearDay & "','" & zone & "','" & net & "','" & node & "','" & role & "' );"
+    rs1 = $con.Exec(mySQL)
+    '  rs1 = $con.Create("nodes")
+    'rs1!domain = "fidonet"
+    'rs1!nodeno = nodeno
+    'rs1!bbsname = bbsname
+    'rs1!location = location
+    'rs1!sysop = sysop
+    'rs1!nodeday = DateDiff(Date(2021, 01, 01), Date(Now), gb.Day) + 1
+    'rs1!Zone = zone
+    'rs1!Net = net
+    'rs1!Node = node
+    'rs1!Role = role
+    'rs1.Update
+    
+    rs.MoveNext()
+  Wend
+  
+  LoadTableViewNodes
+  Spinner1.Stop
+  
+End
+
+Sub LoadTableViewNodes()
+  'TableViewNodes
+  
+  Dim mySQL As String
+  Dim rs As Result
+  Dim iRow As Integer
+  
+  mySql = "SELECT * from nodes;"
+  rs = $con.Exec(mySQL)
+  TableViewNodes.Rows.Count = rs.Count
+  TableViewNodes.Columns.Count = 0
+  TableViewNodes.AddColumn("Domain", -1)
+  TableViewNodes.AddColumn("Node Number", -1)
+  TableViewNodes.AddColumn("BBS Name", -1)
+  TableViewNodes.AddColumn("Location", -1)
+  TableViewNodes.AddColumn("Sysop", -1)
+  TableViewNodes.Header = GridView.both
+  iRow = 0
+  While (rs.Available)
+    Print "Nodes:" & rs!domain & "," & rs["nodeno"]
+    TableViewNodes[iRow, 0].text = rs!domain
+    TableViewNodes[iRow, 1].text = rs!nodeno
+    TableViewNodes[iRow, 2].text = rs!bbsname
+    TableViewNodes[iRow, 3].text = rs!location
+    TableViewNodes[iRow, 4].text = rs!sysop
+    
+    'TableView1[iRow, iCol].Text = sData[iCount]
+    Inc iRow
+    rs.MoveNext()
+  Wend
+  
+  TableViewNodes.Columns.Width = -1
+  Debug ("Nodes table Loaded")
+  
+End
+
+Public Sub mnuUpdateNodes_Click()
+  
+  UpdateNodes
+  LoadTableViewNodes
+  
+End
+
+Public Sub mnuExit_Click()
+  
+  Me.Close
+  
+End
+
+Public Sub mnuImportNodelist_Click()
+  
+  ReadNodelist
+  
+End
+
+Public Sub mnuRefreshNodes_Click()
+  
+  LoadTableViewNodes
+  
+End
+
+Public Sub TableViewNodes_Click()
+  
+  Dim XX As New NodeInfo
+  
+  XX.Text = TableViewNodes[TableViewNodes.Row, 1].Text & " - " & TableViewNodes[TableViewNodes.Row, 2].Text & " - " & TableViewNodes[TableViewNodes.Row, 3].Text
+  XX.Show
+  
+End
+
+Public Sub BtnImportNodelist_Click()
+  
+  ReadNodelist
+  
+End
+
+Public Sub BtnUpdateNodes_Click()
+  
+  BtnUpdateNodes.Enabled = False
+  UpdateNodes
+  BtnUpdateNodes.Enabled = True
+  
+End
+
+Public Sub BtnExit_Click()
+  
+  Me.Close
+  
+End

@@ -1,0 +1,53 @@
+# Gambas Form File 3.0
+
+{ Form Form
+  MoveScaled(0,0,117,81)
+  Text = ("Node GUI")
+  { mnuFile Menu
+    Text = ("File")
+    Shortcut = "Alt+F"
+    { mnuImportNodelist Menu
+      Text = ("Import Nodelist")
+    }
+    { mnuUpdateNodes Menu
+      Action = "UpdateNodes"
+      Text = ("Update Nodes")
+    }
+    { mnuRefreshNodes Menu
+      Text = ("Refresh Nodes")
+    }
+    { MenuSep1 Menu
+    }
+    { mnuExit Menu
+      Text = Shortcut(("Exit"), "x")
+    }
+  }
+  { TableViewNodes TableView
+    MoveScaled(0,0,114,65)
+    Expand = True
+  }
+  { Spinner1 Spinner
+    MoveScaled(84,21,8,8)
+  }
+  { BtnImportNodelist Button
+    MoveScaled(1,67,16,4)
+    Text = ("Import")
+  }
+  { BtnUpdateNodes Button
+    MoveScaled(1,72,16,4)
+    Text = ("Update Nodes")
+  }
+  { BtnExit Button
+    MoveScaled(98,72,16,4)
+    Text = ("Exit")
+  }
+}
+
+# Gambas Action File 3.0
+
+{ Actions
+  { Action UpdateNodes
+    Text = "Update Nodes"
+    Shortcut = ""
+  }
+}

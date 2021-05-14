@@ -1,0 +1,43 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: NodeGUI 3.14.3\n"
+"PO-Revision-Date: 2021-05-09 04:03 UTC\n"
+"Last-Translator: BoonDock <dovey.john@gmail.com>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: .project:1
+msgid "Node GUI for manipulation of ZoneList files"
+msgstr "Графический интерфейс узла для управления файлами списка зон"
+
+#: .project:2
+msgid "This program is designed to maintain an SQLite database which contains the nodelist information garnered from various networks.\nIt was designed to work primarily with FidoNet, but nothing stops you from using it to maintain the nodelist from any other network.\nIf you wish, you can lump all the nodelists from any network you like into the same database, or you can keep seperate versions for seperate networks. \nAt this time, this requires you to copy the program into a differernt directory as the SQLite database is created in the same directory as the program is installed."
+msgstr "Эта программа предназначена для поддержки базы данных SQLite, которая содержит информацию о списках узлов, собранных из различных сетей. \n Она была разработана для работы в основном с FidoNet, но ничто не мешает вам использовать ее для поддержки списка узлов из любой другой сети. \n Если вы хотите, вы можете объединить все нодлисты из любой сети в одну базу данных или сохранить отдельные версии для отдельных сетей. \n В этот раз вам необходимо скопировать программу в другой каталог, поскольку база данных SQLite создается в том же каталоге, что и программа."
+
+#: NodeGUIMain.form:7
+msgid "A GUI Nodelist Editor"
+msgstr "Редактор списка узлов с графическим интерфейсом"
+
+#: NodeGUIMain.form:8
+msgid "Node GUI"
+msgstr "Графический интерфейс узла"
+
+#: NodeGUIMain.class:50
+msgid "Enter Open Database subroutine"
+msgstr "Войдите в подпрограмму Open Database"
+
+#: NodeGUIMain.class:72
+msgid "Could not connect, error I/O or something!"
+msgstr "Не удалось подключиться, ошибка ввода-вывода или что-то в этом роде!"
+
+#: NodeGUIMain.class:81
+msgid "Connected? : "
+msgstr "Связанный? :"
+
+#: NodeGUIMain.class:91
+msgid "Exit  Open Database subroutine"
+msgstr "Выйти из подпрограммы Open Database"
+
