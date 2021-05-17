@@ -202,12 +202,15 @@ Sub ReadNodelist()
         
       Endif
       For y = 0 To 35 ' Elt.count - 1
-        Elt[y] = Replace$(Elt[y], "'", "~") ' Replace single quote with ~ SPECIALLY for D'Bridge !!!!! :-(())
+        ' Elt[y] = Replace$(Elt[y], "'", "~") ' Replace single quote with ~ SPECIALLY for D'Bridge !!!!! :-(())
         'Elt[y] = Replace$(Elt[y], "\r", ",[r]")
         'Elt[y] = Replace$(Elt[y], "\n", ",[n]")
+        ' mySqlFields &= ", 'f" & y & "'"
+        ' mySqlValues &= ", '" & Elt[y] & "'"
+
         mySqlFields &= ", 'f" & y & "'"
-        mySqlValues &= ", '" & Elt[y] & "'"
-        
+        ' the  & "" we need for not to crash with null values. Charlie        
+        mySqlValues &= $con.Subst(", &1", Elt[y] & "") 
       Next
       mySqlFields &= ") VALUES "
       mySqlValues &= ");"
@@ -283,7 +286,14 @@ Public Sub UpdateNodes()
     ' Use REPLACE syntax so that it will insert, but delete and insert if the record exists. 
     ' Constraint is based on the primary key which at this point is "nodeno"
     mySQL = "REPLACE INTO nodes ('domain',nodeno,bbsname,location,sysop,nodeday,Zone,Net,Node,Role ) "
-    mySQL &= " VALUES ('" & domain & "','" & nodeno & "','" & bbsname & "','" & location & "','" & sysop & "','" & YearDay & "','" & zone & "','" & net & "','" & node & "','" & role & "' );"
+'    mySQL &= " VALUES ('" & domain & "','" & nodeno & "','" & bbsname & "','" & location & "','" & sysop & ' "','" & YearDay & "','" & zone & "','" & net & "','" & node & "','" & role & "' );"
+
+    ' because Subst is only allowed to have 9 arguments, but we need more, so it takes a trick to get further. Charlie 
+    mySQL &= " VALUES (&1, &2, &3, &4, &5, &6, &7, &8, &9, #myDummyPlaceholder#1);"
+    mySQL = $con.Subst(mySQL, domain, nodeno, bbsname, location, sysop, YearDay, zone, net, node)
+    mySQL = Replace$(mySQL, "#myDummyPlaceholder#", "&")
+    mySQL = $con.Subst(mySQL, role)
+    
     rs1 = $con.Exec(mySQL)
     '  rs1 = $con.Create("nodes")
     'rs1!domain = "fidonet"
@@ -395,3 +405,4 @@ Public Sub BtnExit_Click()
   Me.Close
   
 End
+
